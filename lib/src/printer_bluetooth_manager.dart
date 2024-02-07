@@ -15,10 +15,13 @@ import './enums.dart';
 /// Bluetooth printer
 class PrinterBluetooth {
   PrinterBluetooth(this._device);
+
   final BluetoothDevice _device;
 
   String? get name => _device.name;
+
   String? get address => _device.address;
+
   int? get type => _device.type;
 }
 
@@ -32,17 +35,19 @@ class PrinterBluetoothManager {
   PrinterBluetooth? _selectedPrinter;
 
   final BehaviorSubject<bool> _isScanning = BehaviorSubject.seeded(false);
+
   Stream<bool> get isScanningStream => _isScanning.stream;
 
   final BehaviorSubject<List<PrinterBluetooth>> _scanResults =
       BehaviorSubject.seeded([]);
+
   Stream<List<PrinterBluetooth>> get scanResults => _scanResults.stream;
 
   Future _runDelayed(int seconds) {
     return Future<dynamic>.delayed(Duration(seconds: seconds));
   }
 
-  void startScan(Duration timeout) async {
+  void startScan(Duration timeout) {
     _scanResults.add(<PrinterBluetooth>[]);
 
     _bluetoothManager.startScan(timeout: timeout);
@@ -54,7 +59,7 @@ class PrinterBluetoothManager {
     _isScanningSubscription =
         _bluetoothManager.isScanning.listen((isScanningCurrent) async {
       // If isScanning value changed (scan just stopped)
-      if (_isScanning.value! && !isScanningCurrent) {
+      if (_isScanning.value && !isScanningCurrent) {
         _scanResultsSubscription!.cancel();
         _isScanningSubscription!.cancel();
       }
@@ -62,7 +67,7 @@ class PrinterBluetoothManager {
     });
   }
 
-  void stopScan() async {
+  Future<void> stopScan() async {
     await _bluetoothManager.stopScan();
   }
 
@@ -80,9 +85,11 @@ class PrinterBluetoothManager {
     const int timeout = 5;
     if (_selectedPrinter == null) {
       return Future<PosPrintResult>.value(PosPrintResult.printerNotSelected);
-    } else if (_isScanning.value!) {
+    }
+    if (_isScanning.value) {
       return Future<PosPrintResult>.value(PosPrintResult.scanInProgress);
-    } else if (_isPrinting) {
+    }
+    if (_isPrinting) {
       return Future<PosPrintResult>.value(PosPrintResult.printInProgress);
     }
 
@@ -134,7 +141,9 @@ class PrinterBluetoothManager {
     _runDelayed(timeout).then((dynamic v) async {
       if (_isPrinting) {
         _isPrinting = false;
-        completer.complete(PosPrintResult.timeout);
+        if (!completer.isCompleted) {
+          completer.complete(PosPrintResult.timeout);
+        }
       }
     });
 
@@ -149,7 +158,7 @@ class PrinterBluetoothManager {
     if (bytes.isEmpty) {
       return Future<PosPrintResult>.value(PosPrintResult.ticketEmpty);
     }
-    return writeBytes(
+    return await writeBytes(
       bytes,
       chunkSizeBytes: chunkSizeBytes,
       queueSleepTimeMs: queueSleepTimeMs,
