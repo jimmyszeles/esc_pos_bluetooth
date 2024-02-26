@@ -82,7 +82,7 @@ class PrinterBluetoothManager {
   }) async {
     final Completer<PosPrintResult> completer = Completer();
 
-    const int timeout = 5;
+    const int timeout = 15;
     if (_selectedPrinter == null) {
       return Future<PosPrintResult>.value(PosPrintResult.printerNotSelected);
     }
@@ -96,7 +96,7 @@ class PrinterBluetoothManager {
     _isPrinting = true;
 
     // We have to rescan before connecting, otherwise we can connect only once
-    await _bluetoothManager.startScan(timeout: Duration(seconds: 1));
+    await _bluetoothManager.startScan(timeout: Duration(seconds: 5));
     await _bluetoothManager.stopScan();
 
     // Connect
@@ -123,7 +123,7 @@ class PrinterBluetoothManager {
             completer.complete(PosPrintResult.success);
           }
           // TODO sending disconnect signal should be event-based
-          _runDelayed(3).then((dynamic v) async {
+          _runDelayed(15).then((dynamic v) async {
             await _bluetoothManager.disconnect();
             _isPrinting = false;
           });
